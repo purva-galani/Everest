@@ -23,6 +23,8 @@ const taskSchema = z.object({
   dueDate: z.date().optional(),
   status: z.enum(["Pending", "Resolved", "In Progress"]),
   priority: z.enum(["High", "Medium", "Low"]),
+  notes: z.string().optional(),
+  
 });
 
 export default function Task() {
@@ -39,6 +41,7 @@ export default function Task() {
       dueDate: undefined,
       status: "Pending",
       priority: "Medium",
+      notes: "",
     },
   });
 
@@ -128,7 +131,9 @@ export default function Task() {
               <FormItem>
                 <FormLabel>Assigned To</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter the person assigned" {...field} />
+                  <Input 
+                  placeholder="Enter assignee's name" 
+                  {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -141,8 +146,8 @@ export default function Task() {
             control={form.control}
                 name="taskDate"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                  <FormLabel>Task Date</FormLabel>
+                  <FormItem>
+                  <FormLabel>Date</FormLabel>
                   <Popover>
                       <PopoverTrigger asChild>
                       <FormControl>
@@ -173,7 +178,7 @@ export default function Task() {
                     control={form.control}
                     name="dueDate"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem>
                         <FormLabel>Due Date</FormLabel>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -239,6 +244,24 @@ export default function Task() {
             )}
           />
         </div>
+        
+        <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Task Notes</FormLabel>
+                <FormControl>
+                  <textarea
+                    {...field}
+                    placeholder="Enter task notes"
+                    className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? (

@@ -21,11 +21,6 @@ const addOwner = async (req, res) => {
       incorporationCertificate
     } = req.body;
 
-    // Validate required fields
-    if (!companyName || !ownerName || !contactNumber) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
     const newOwner = new Owner({
       logo,
       companyName,

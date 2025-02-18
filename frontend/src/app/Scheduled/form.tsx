@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Textarea } from "@/components/ui/textarea";
 
 // Define validation schema using Zod
 const eventSchema = z.object({
@@ -19,9 +24,8 @@ const eventSchema = z.object({
   eventType: z.enum(["call", "Call", "Meeting", "meeting", "Demo", "demo", "Follow-Up", "follow-up"], { message: "Event type is required." }),
   priority: z.enum(["Low", "low", "Medium", "medium", "High", "high"], { message: "Priority is required." }),
   description: z.string().optional(),
-  reminder: z.number().optional(),
   recurrence: z.enum(["one-time", "Daily", "Weekly", "Monthly", "Yearly"], { message: "Recurrence is required." }),
-  date: z.string().min(2, { message: "Date is required." }),
+  date: z.date().optional(),
 });
 
 export default function ScheduledEventForm() {
@@ -39,16 +43,15 @@ export default function ScheduledEventForm() {
       eventType: "call",
       priority: "Medium",
       description: "",
-      reminder: undefined,
       recurrence: "one-time",
-      date: "",
+      date: new Date(),
     },
   });
 
   const onSubmit = async (values: z.infer<typeof eventSchema>) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/scheduledEvent", {
+      const response = await fetch("http://localhost:8000/api/v1/scheduledevents/createScheduledEvent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -206,17 +209,37 @@ export default function ScheduledEventForm() {
           />
           <FormField
             control={form.control}
-            name="reminder"
+            name="date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Reminder</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="Enter reminder in minutes" {...field} />
-                </FormControl>
+                <FormLabel>Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                      >
+                        {field.value ? format(new Date(field.value), "PPP") : <span>Pick a date</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value ? new Date(field.value) : undefined} // Convert string to Date
+                      onSelect={field.onChange}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
           />
+
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -242,19 +265,7 @@ export default function ScheduledEventForm() {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
         </div>
 
         <FormField
@@ -264,7 +275,7 @@ export default function ScheduledEventForm() {
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Input placeholder="Enter description" {...field} />
+                <Textarea placeholder="Enter description" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

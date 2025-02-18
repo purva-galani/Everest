@@ -7,17 +7,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
 
 const complaintSchema = z.object({
   companyName: z.string().min(2, { message: "Company name is required." }),
+  
   complainerName: z.string().min(2, { message: "Complainer name is required." }),
+  
   contactNumber: z.string().optional(),
+  
   emailAddress: z.string().email({ message: "Invalid email address." }),
+  
   subject: z.string().min(2, { message: "Subject is required." }),
+  
   date: z.date().optional(),
+  
   caseStatus: z.enum(["Pending", "Resolved", "In Progress"]),
+  
   priority: z.enum(["High", "Medium", "Low"]),
+  
   caseOrigin: z.string().optional(),
 });
 
@@ -83,7 +95,7 @@ export default function ComplaintForm() {
                 <FormControl>
                   <Input placeholder="Enter company name" {...field} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage/>
               </FormItem>
             )}
           />
@@ -96,7 +108,7 @@ export default function ComplaintForm() {
                 <FormControl>
                   <Input placeholder="Enter complainer name" {...field} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage/>
               </FormItem>
             )}
           />
@@ -112,7 +124,7 @@ export default function ComplaintForm() {
                 <FormControl>
                   <Input placeholder="Enter contact number" {...field} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage/>
               </FormItem>
             )}
           />
@@ -125,7 +137,7 @@ export default function ComplaintForm() {
                 <FormControl>
                   <Input placeholder="Enter email address" {...field} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage/>
               </FormItem>
             )}
           />
@@ -141,35 +153,41 @@ export default function ComplaintForm() {
                 <FormControl>
                   <Input placeholder="Enter subject" {...field} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage/>
               </FormItem>
             )}
           />
             <FormField
               control={form.control}
-              name="date"
-              render={({ field }) => {
-                // Convert Date to string in YYYY-MM-DD format
-                const value = field.value ? field.value.toISOString().split('T')[0] : '';
-                return (
+                name="date"
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        value={value}
-                        onChange={(e) => {
-                          // Convert string back to Date
-                          const date = e.target.value ? new Date(e.target.value) : undefined;
-                          field.onChange(date);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                              >
+                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) => date > new Date()}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage/>
                   </FormItem>
-                );
-              }}
+                )}
             />
         </div>
 
@@ -187,7 +205,7 @@ export default function ComplaintForm() {
                     <option value="In Progress">In Progress</option>
                   </select>
                 </FormControl>
-                <FormMessage />
+                <FormMessage/>
               </FormItem>
             )}
           />
@@ -204,7 +222,7 @@ export default function ComplaintForm() {
                     <option value="Low">Low</option>
                   </select>
                 </FormControl>
-                <FormMessage />
+                <FormMessage/>
               </FormItem>
             )}
           />
@@ -219,7 +237,7 @@ export default function ComplaintForm() {
               <FormControl>
                 <Input placeholder="Enter case origin" {...field} />
               </FormControl>
-              <FormMessage />
+              <FormMessage/>
             </FormItem>
           )}
         />

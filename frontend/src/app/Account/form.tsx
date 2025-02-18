@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Define validation schema using Zod
 const accountSchema = z.object({
@@ -15,7 +19,7 @@ const accountSchema = z.object({
   contactName: z.string().min(2, { message: "Contact name is required." }),
   contactNumber: z.string().optional(),
   emailAddress: z.string().email({ message: "Invalid email address." }),
-  accountType: z.enum(["Prospect", "Customer", "Partner"], { message: "Account type is required." }),
+  accountType1: z.enum(["Prospect", "Customer", "Partner"], { message: "Account type is required." }),
   industry: z.string().min(2, { message: "Industry is required." }),
   status: z.enum(["Active", "Inactive"], { message: "Account status is required." }),
   accountManager: z.string().min(2, { message: "Account manager is required." }),
@@ -23,6 +27,15 @@ const accountSchema = z.object({
   endDate: z.date().optional(),
   address: z.string().min(2, { message: "Address is required." }),
   description: z.string().optional(),
+  companyName: z.string().min(2, { message: "Company name is required." }), 
+  bankDetails: z.object({
+    bankName: z.string().min(2, { message: "Bank name is required." }),
+    accountNumber: z.string().min(2, { message: "Account number is required." }),
+    sortCode: z.string().min(2, { message: "Sort code is required." }),
+    accountType2: z.enum(["Checking", "Savings"], { message: "Account type is required." }), 
+    bankAddress: z.string().min(2, { message: "Bank address is required." }),
+    swiftCode: z.string().min(2, { message: "SWIFT code is required." }),
+  }).optional(),
 });
 
 export default function AccountForm() {
@@ -36,7 +49,7 @@ export default function AccountForm() {
       contactName: "",
       contactNumber: "",
       emailAddress: "",
-      accountType: "Prospect",
+      accountType1: "Prospect",
       industry: "",
       status: "Active",
       accountManager: "",
@@ -44,13 +57,22 @@ export default function AccountForm() {
       endDate: undefined,
       address: "",
       description: "",
+      companyName: "",
+      bankDetails: {
+        bankName: "",
+        accountNumber: "",
+        sortCode: "",
+        accountType2: "Checking",
+        bankAddress: "",
+        swiftCode: "",
+      },
     },
   });
 
   const onSubmit = async (values: z.infer<typeof accountSchema>) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/account", {
+      const response = await fetch("http://localhost:8000/api/v1/account/accountAdd", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -66,8 +88,6 @@ export default function AccountForm() {
         title: "Account Created",
         description: "Your account has been created successfully.",
       });
-
-      // You can redirect or reset the form here if needed
     } catch (error) {
       toast({
         title: "Error",
@@ -82,6 +102,7 @@ export default function AccountForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Account Name and Contact Name */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -111,6 +132,7 @@ export default function AccountForm() {
           />
         </div>
 
+        {/* Contact Number and Email */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -140,10 +162,11 @@ export default function AccountForm() {
           />
         </div>
 
+        {/* Account Type and Industry */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <FormField
             control={form.control}
-            name="accountType"
+            name="accountType1"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Account Type</FormLabel>
@@ -176,6 +199,7 @@ export default function AccountForm() {
           />
         </div>
 
+        {/* Status and Account Manager */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -211,6 +235,7 @@ export default function AccountForm() {
           />
         </div>
 
+        {/* Start Date and Due Date */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -218,28 +243,68 @@ export default function AccountForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Start Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                      >
+                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="endDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>End Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
+                    <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>End Date</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                            >
+                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) => date < new Date()}
+                                            initialFocus
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
         </div>
 
+        {/* Address */}
         <FormField
           control={form.control}
           name="address"
@@ -254,6 +319,7 @@ export default function AccountForm() {
           )}
         />
 
+        {/* Description */}
         <FormField
           control={form.control}
           name="description"
@@ -268,6 +334,115 @@ export default function AccountForm() {
           )}
         />
 
+        {/* Company Name */}
+        <FormField
+          control={form.control}
+          name="companyName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Company Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter company name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Bank Details */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="bankDetails.bankName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Bank Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter bank name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="bankDetails.accountNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Account Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter account number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="bankDetails.sortCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sort Code</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter sort code" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="bankDetails.accountType2"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Account Type</FormLabel>
+                <FormControl>
+                  <select
+                    {...field}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Checking">Current</option>
+                    <option value="Savings">Savings</option>
+                  </select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="bankDetails.bankAddress"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Bank Address</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter bank address" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="bankDetails.swiftCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>IFSC Code</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter SWIFT code" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Submit Button */}
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? (
             <>

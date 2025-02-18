@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import Invocie from "../invocie/form"
+import Invocie from "./form"
 import {
     SidebarInset,
     SidebarProvider,
@@ -38,16 +38,16 @@ export default function CertificatePage() {
                         </Breadcrumb>
                         {/* Add button in the header */}
                         <div className="ml-auto">
-                            <Button>Invocie List</Button>
+                            <Button>Invoice List</Button>
                         </div>
                     </div>
                 </header>
                 <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8 pt-15">
                     <Card className="max-w-2xl mx-auto">
                         <CardHeader>
-                            <CardTitle className="text-3xl font-bold text-center">Invocie Manager</CardTitle>
+                            <CardTitle className="text-3xl font-bold text-center">Invoice Manager</CardTitle>
                             <CardDescription className="text-center">
-                                Manage and track your Invocie effectively.
+                                Manage and track your Invoice effectively.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
