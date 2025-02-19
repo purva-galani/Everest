@@ -337,6 +337,25 @@ const updateStatus = async (req, res) => {
     }
 };
 
+const getLeadsByStatus = async (req, res) => {
+    const { status } = req.query;
+  
+    try {
+      const leads = await Lead.find({ status }, 'Name email amount');
+      res.status(200).json({
+        success: true,
+        data: leads
+      });
+    } catch (error) {
+      console.error(`Error fetching ${status} leads:`, error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error: " + error.message,
+      });
+    }
+  };
+  
+
 module.exports = {
     createLead,
     getAllLeads,
@@ -351,5 +370,6 @@ module.exports = {
     updateStatus,
     searchByMonth,
     searchByYear,
-    searchByDate
+    searchByDate,
+    getLeadsByStatus
 };

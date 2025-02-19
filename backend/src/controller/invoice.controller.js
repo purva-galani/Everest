@@ -416,6 +416,9 @@ const updateCustomMessage = async(req,res)=>{
       }
 }
 
+const getInvoicesByStatus = async (req, res) => {
+};
+
 module.exports = {
     invoiceAdd,
     updateInvoice,
@@ -427,4 +430,5 @@ module.exports = {
     sendEmailReminder,
     sendWhatsAppReminder,
     updateCustomMessage,
+    getInvoicesByStatus,
 };
