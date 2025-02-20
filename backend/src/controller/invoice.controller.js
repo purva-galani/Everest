@@ -417,7 +417,22 @@ const updateCustomMessage = async(req,res)=>{
 }
 
 const getInvoicesByStatus = async (req, res) => {
-};
+    const { status } = req.query;
+  
+    try {
+      const invoices = await Invoice.find({ status }, 'Name email amount');
+      res.status(200).json({
+        success: true,
+        data: invoices
+      });
+    } catch (error) {
+      console.error(`Error fetching ${status} invoices:`, error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error: " + error.message,
+      });
+    }
+  };
 
 module.exports = {
     invoiceAdd,

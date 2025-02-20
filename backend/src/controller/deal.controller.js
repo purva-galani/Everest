@@ -333,6 +333,24 @@ const updateStatus = async (req, res) => {
     }
 };
 
+const getDealsByStatus = async (req, res) => {
+    const { status } = req.query;
+  
+    try {
+      const deals = await Deal.find({ status }, 'Name email amount');
+      res.status(200).json({
+        success: true,
+        data: deals
+      });
+    } catch (error) {
+      console.error(`Error fetching ${status} deals:`, error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error: " + error.message,
+      });
+    }
+  };
+
 module.exports = {
     createDeal,
     getAllLeads,
@@ -347,5 +365,6 @@ module.exports = {
     updateStatus,
     searchByMonth,
     searchByYear,
-    searchByDate
+    searchByDate,
+    getDealsByStatus
 };

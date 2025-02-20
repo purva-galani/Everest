@@ -1,164 +1,128 @@
 'use client';
-import React, { useState, useEffect } from "react";
-import Chart from "chart.js";
+import React, { useState, useEffect, useRef } from "react";
+import { Chart } from 'chart.js/auto'; 
 
-export default function CardLineChart() {
-  // State to track the selected dropdown value
-  const [selectedOption, setSelectedOption] = useState("New");
+export default function CardChart() {
+  const [selectedChartType, setSelectedChartType] = useState("line");
+  const [chartData, setChartData] = useState({});
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
 
-  // Data for each option
-  const chartData = {
-    New: [65, 78, 66, 44, 56, 67, 75],
-    Discussion: [40, 68, 86, 74, 56, 60, 87],
-    Demo: [55, 60, 70, 80, 65, 75, 90],
-    Proposal: [45, 55, 60, 68, 50, 77, 95],
-    Decided: [50, 70, 80, 65, 90, 85, 100]
-  };
+  const statuses = ["New", "Discussion", "Demo", "Proposal", "Decided"];
 
-  // Effect to initialize the chart
   useEffect(() => {
-    const config = {
-      type: "line",
+    const fetchAllData = async () => {
+      try {
+        const statusData = {};
+
+        for (const status of statuses) {
+          const response = await fetch(`http://localhost:8000/api/v1/deal/getDealsByStatus?status=${status}`);
+          const data = await response.json();
+          
+          if (data.success) {
+            const totalAmount = data.data.reduce((sum, deal) => sum + deal.amount, 0);
+            statusData[status] = totalAmount;
+          }
+        }
+
+        setChartData(statusData);
+      } catch (error) {
+        console.error("Error fetching deal data:", error);
+      }
+    };
+
+    fetchAllData();
+  }, []);
+
+  useEffect(() => {
+    if (!chartData || Object.keys(chartData).length === 0) return;
+
+    const ctx = chartRef.current.getContext("2d");
+
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+    }
+
+    chartInstance.current = new Chart(ctx, {
+      type: selectedChartType,
       data: {
-        labels: ["January", "February", "March", "April", "May", "June", "July"],
+        labels: statuses,
         datasets: [
           {
-            label: new Date().getFullYear(),
-            backgroundColor: "#3182ce",
+            label: `${new Date().getFullYear()} Deal Values`,
+            backgroundColor: selectedChartType === "bar" ? "#3182ce" : "rgba(49, 130, 206, 0.5)",
             borderColor: "#3182ce",
-            data: chartData[selectedOption], // Use selected option data
-            fill: false,
-          },
-          {
-            label: new Date().getFullYear() - 1,
-            fill: false,
-            backgroundColor: "#A9A9A9",
-            borderColor: "#A9A9A9",
-            data: chartData[selectedOption], // Use selected option data
+            data: statuses.map(status => chartData[status] || 0),
+            fill: selectedChartType === "line" ? false : true,
           },
         ],
       },
       options: {
         maintainAspectRatio: false,
         responsive: true,
-        title: {
-          display: false,
-          text: "Sales Charts",
-          fontColor: "white",
-        },
-        legend: {
-          labels: {
-            fontColor: "white",
+        plugins: {
+          legend: {
+            labels: { color: "white" },
+            align: "end",
+            position: "bottom",
           },
-          align: "end",
-          position: "bottom",
+          title: {
+            display: false,
+            text: "Sales Charts",
+            color: "white",
+          },
         },
-        tooltips: {
+        interaction: {
           mode: "index",
           intersect: false,
         },
-        hover: {
-          mode: "nearest",
-          intersect: true,
-        },
         scales: {
-          xAxes: [
-            {
-              ticks: {
-                fontColor: "rgba(240, 22, 22, 0.7)",
-              },
-              display: true,
-              scaleLabel: {
-                display: false,
-                labelString: "Month",
-                fontColor: "white",
-              },
-              gridLines: {
-                display: false,
-                borderDash: [2],
-                borderDashOffset: [2],
-                color: "rgba(33, 37, 41, 0.3)",
-                zeroLineColor: "rgba(0, 0, 0, 0)",
-                zeroLineBorderDash: [2],
-                zeroLineBorderDashOffset: [2],
-              },
-            },
-          ],
-          yAxes: [
-            {
-              ticks: {
-                fontColor: "rgba(241, 8, 8, 0.7)",
-              },
-              display: true,
-              scaleLabel: {
-                display: false,
-                labelString: "Value",
-                fontColor: "white",
-              },
-              gridLines: {
-                borderDash: [3],
-                borderDashOffset: [3],
-                drawBorder: false,
-                color: "rgba(250, 13, 13, 0.15)",
-                zeroLineColor: "rgba(33, 37, 41, 0)",
-                zeroLineBorderDash: [2],
-                zeroLineBorderDashOffset: [2],
-              },
-            },
-          ],
+          x: {
+            ticks: { color: "white" },
+            grid: { display: false, color: "rgba(33, 37, 41, 0.3)" },
+          },
+          y: {
+            ticks: { color: "white" },
+            grid: { color: "rgba(250, 250, 250, 0.15)" },
+          },
         },
       },
-    };
+    });
 
-    var ctx = document.getElementById("line-chart").getContext("2d");
-    window.myLine = new Chart(ctx, config);
-
-    // Cleanup the chart on component unmount
     return () => {
-      if (window.myLine) {
-        window.myLine.destroy();
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
       }
     };
-  }, [selectedOption]); // Re-run the effect when selectedOption changes
-
-  // Handler to update the selected dropdown option
-  const handleDropdownChange = (e) => {
-    setSelectedOption(e.target.value);
-  };
+  }, [chartData, selectedChartType]);
 
   return (
-    <>
-      <div className="relative flex flex-col min-w-0 break-words w-full mb-6 shadow-lg rounded bg-blueGray-700">
-        <div className="rounded-t mb-0 px-4 py-3 bg-transparent">
-          <div className="flex flex-wrap items-center">
-            <div className="relative w-full max-w-full flex-grow flex-1">
-              <h6 className="uppercase text-blueGray-100 mb-1 text-xs font-semibold">
-                Overview
-              </h6>
-              <h2 className="text-white text-blueGray-100 font-semibold">Deal value</h2>
-            </div>
-            {/* Dropdown to select chart data */}
-            <select
-              value={selectedOption}
-              onChange={handleDropdownChange}
-              className="w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" // Set a fixed width (w-32)
-            >
-              <option value="New">New</option>
-              <option value="Discussion">Discussion</option>
-              <option value="Demo">Demo</option>
-              <option value="Proposal">Proposal</option>
-              <option value="Decided">Decided</option>
-            </select>
-
+    <div className="relative flex flex-col min-w-0 break-words w-full mb-6 shadow-lg rounded bg-blueGray-700">
+      <div className="rounded-t mb-0 px-4 py-3 bg-transparent">
+        <div className="flex flex-wrap items-center justify-between">
+          <div className="relative w-full max-w-full flex-grow flex-1">
+            <h6 className="uppercase text-blueGray-100 mb-1 text-xs font-semibold">Overview</h6>
+            <h2 className="text-white text-blueGray-100 font-semibold">Total Deal Value</h2>
           </div>
-        </div>
-        <div className="p-4 flex-auto">
-          {/* Chart */}
-          <div className="relative" style={{ height: "500px", width: "100%" }}>
-            <canvas id="line-chart" style={{ height: "100%", width: "100%" }}></canvas>
+
+          <div className="flex gap-4">
+            <select
+              value={selectedChartType}
+              onChange={(e) => setSelectedChartType(e.target.value)}
+              className="w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="line">Line Chart</option>
+              <option value="bar">Bar Chart</option>
+            </select>
           </div>
         </div>
       </div>
-    </>
+
+      <div className="p-4 flex-auto">
+        <div className="relative" style={{ height: "500px", width: "100%" }}>
+          <canvas ref={chartRef} style={{ height: "100%", width: "100%" }}></canvas>
+        </div>
+      </div>
+    </div>
   );
 }

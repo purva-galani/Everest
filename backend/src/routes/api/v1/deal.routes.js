@@ -16,5 +16,6 @@ router.get('/demo', DealController.getDemoLeads);
 router.get('/proposal', DealController.getProposalLeads);
 router.get('/decided', DealController.getDecidedLeads);
 router.post('/updateLeadStatus',DealController.updateStatus);
+router.get('/getDealsByStatus', DealController.getDealsByStatus);
 
 module.exports = router;
