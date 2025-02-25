@@ -3,101 +3,98 @@ const nodemailer = require("nodemailer");
 const { storeNotification } = require('./notification.controller');
 const cron = require('node-cron');
 
-const remindEvent = async () => {
-    const io = require('../index'); // Get the initialized socket.io instance
-    const now = new Date();
-    const nowIST = new Date(now.getTime() + (5 * 60 + 30) * 60000); // Convert UTC to IST
-    const todayIST = nowIST.toISOString().split('T')[0]; // Today's date in IST (YYYY-MM-DD)
-    console.log('Cron job running at (IST):', nowIST.toISOString());
+// const remindEvent = async () => {
+//     const io = require('../index'); // Get the initialized socket.io instance
+//     const now = new Date();
+//     const nowIST = new Date(now.getTime() + (5 * 60 + 30) * 60000); // Convert UTC to IST
+//     const todayIST = nowIST.toISOString().split('T')[0]; // Today's date in IST (YYYY-MM-DD)
+//     console.log('Cron job running at (IST):', nowIST.toISOString());
 
-    try {
-        // Fetch all unpaid invoices
-        const invoices = await Invoice.find({
-            date: { $gte: todayIST }, // Fetch events happening today or later
-            status: "Unpaid", // Only unpaid invoices
-        });
+//     try {
+//         // Fetch all unpaid invoices
+//         const invoices = await Invoice.find({
+//             date: { $gte: todayIST }, // Fetch events happening today or later
+//             status: "Unpaid", // Only unpaid invoices
+//         });
 
-        if (!invoices.length) {
-            console.log('No unpaid invoices to remind');
-            return;
-        }
+//         if (!invoices.length) {
+//             console.log('No unpaid invoices to remind');
+//             return;
+//         }
 
-        for (const invoice of invoices) {
-            const dueDate = new Date(invoice.date);
-            if (isNaN(dueDate.getTime())) {
-                console.error(`Invalid due date for invoice: ${invoice._id}`);
-                continue; // Skip invalid invoices
-            }
+//         for (const invoice of invoices) {
+//             const dueDate = new Date(invoice.date);
+//             if (isNaN(dueDate.getTime())) {
+//                 console.error(`Invalid due date for invoice: ${invoice._id}`);
+//                 continue; // Skip invalid invoices
+//             }
 
-            // Calculate reminder dates
-            const threeDaysBefore = new Date(dueDate);
-            threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
+//             // Calculate reminder dates
+//             const threeDaysBefore = new Date(dueDate);
+//             threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
 
-            const oneDayBefore = new Date(dueDate);
-            oneDayBefore.setDate(oneDayBefore.getDate() - 1);
+//             const oneDayBefore = new Date(dueDate);
+//             oneDayBefore.setDate(oneDayBefore.getDate() - 1);
 
-            const reminderDateType = todayIST === threeDaysBefore.toISOString().split('T')[0]
-                ? "3 Days Before"
-                : todayIST === oneDayBefore.toISOString().split('T')[0]
-                ? "1 Day Before"
-                : todayIST === dueDate.toISOString().split('T')[0]
-                ? "On Due Date"
-                : null;
+//             const reminderDateType = todayIST === threeDaysBefore.toISOString().split('T')[0]
+//                 ? "3 Days Before"
+//                 : todayIST === oneDayBefore.toISOString().split('T')[0]
+//                 ? "1 Day Before"
+//                 : todayIST === dueDate.toISOString().split('T')[0]
+//                 ? "On Due Date"
+//                 : null;
 
-            if (reminderDateType) {
-                console.log(`Reminder (${reminderDateType}): ${invoice.customerName} has an unpaid invoice`);
+//             if (reminderDateType) {
+//                 console.log(`Reminder (${reminderDateType}): ${invoice.customerName} has an unpaid invoice`);
 
-                // Emit reminder via socket.io
-                io.emit('reminder', {
-                    id: invoice._id,
-                    customerName: invoice.customerName,
-                    companyName: invoice.companyName,
-                    amount: invoice.remainingAmount,
-                    dueDate: dueDate.toISOString().split('T')[0], // Only date
-                    reminderType: reminderDateType,
-                });
-                console.log(`Reminder (${reminderDateType}) emitted for:`, invoice.customerName);
+//                 // Emit reminder via socket.io
+//                 io.emit('reminder', {
+//                     id: invoice._id,
+//                     customerName: invoice.customerName,
+//                     companyName: invoice.companyName,
+//                     amount: invoice.remainingAmount,
+//                     dueDate: dueDate.toISOString().split('T')[0], // Only date
+//                     reminderType: reminderDateType,
+//                 });
+//                 console.log(`Reminder (${reminderDateType}) emitted for:`, invoice.customerName);
              
-                // Example of emitting a notification event from backend
-                io.emit('notification', {
-                    _id: "invoice._id",
-                    title: `Reminder (${reminderDateType}): Unpaid Invoice for ${invoice.companyName}`,
-                    message: `Customer ${invoice.customerName} has an unpaid invoice of ₹${invoice.remainingAmount} for the product "${invoice.productName}". The due date is ${dueDate.toISOString().split('T')[0]}.`,
-                    type: 'reminder',
-                    createdAt: new Date().toISOString(),
+//                 // Example of emitting a notification event from backend
+//                 io.emit('notification', {
+//                     _id: "invoice._id",
+//                     title: `Reminder (${reminderDateType}): Unpaid Invoice for ${invoice.companyName}`,
+//                     message: `Customer ${invoice.customerName} has an unpaid invoice of ₹${invoice.remainingAmount} for the product "${invoice.productName}". The due date is ${dueDate.toISOString().split('T')[0]}.`,
+//                     type: 'reminder',
+//                     createdAt: new Date().toISOString(),
 
-                });
-                // Store notification in MongoDB
-                const notificationData = {
-                    title: `Invoice Reminder (${reminderDateType}): Unpaid Invoice for ${invoice.companyName}`,
-                    message: `Customer ${invoice.customerName} has an unpaid invoice of ₹${invoice.remainingAmount} for the product "${invoice.productName}". The due date is ${dueDate.toISOString().split('T')[0]}.`,
-                    type: 'reminder',
-                };
+//                 });
+//                 // Store notification in MongoDB
+//                 const notificationData = {
+//                     title: `Invoice Reminder (${reminderDateType}): Unpaid Invoice for ${invoice.companyName}`,
+//                     message: `Customer ${invoice.customerName} has an unpaid invoice of ₹${invoice.remainingAmount} for the product "${invoice.productName}". The due date is ${dueDate.toISOString().split('T')[0]}.`,
+//                     type: 'reminder',
+//                 };
 
-                await storeNotification(notificationData);
+//                 await storeNotification(notificationData);
 
-                // Send email reminder
-                const emailMessage = `Dear ${invoice.customerName},\n\nThis is a reminder (${reminderDateType}) to pay your outstanding invoice of ₹${invoice.remainingAmount}. Please make the payment at your earliest convenience.`;
+//                 // Send email reminder
+//                 const emailMessage = `Dear ${invoice.customerName},\n\nThis is a reminder (${reminderDateType}) to pay your outstanding invoice of ₹${invoice.remainingAmount}. Please make the payment at your earliest convenience.`;
 
-                await sendEmailReminder({
-                    params: { id: invoice._id },
-                    body: { message: emailMessage },
-                });
-                console.log(`Email sent (${reminderDateType}) for invoice #${invoice._id}`);
-            } else {
-                console.log(`No reminder needed for invoice #${invoice._id}`);
-            }
-        }
-    } catch (error) {
-        console.error('Error executing remindEvent API:', error);
-    }
-};
+//                 await sendEmailReminder({
+//                     params: { id: invoice._id },
+//                     body: { message: emailMessage },
+//                 });
+//                 console.log(`Email sent (${reminderDateType}) for invoice #${invoice._id}`);
+//             } else {
+//                 console.log(`No reminder needed for invoice #${invoice._id}`);
+//             }
+//         }
+//     } catch (error) {
+//         console.error('Error executing remindEvent API:', error);
+//     }
+// };
 
 // Schedule the cron job to run daily at midnight (IST)
-cron.schedule('0 * * * *', remindEvent); // Runs at midnight IST (18:30 UTC)
-
-
-
+// cron.schedule('0 * * * *', remindEvent); // Runs at midnight IST (18:30 UTC)
 
 const invoiceAdd = async (req, res) => {
     try {
@@ -134,6 +131,60 @@ const invoiceAdd = async (req, res) => {
     } catch (error) {
         console.error("Error adding invoice:", error);
         res.status(500).json({ message: "Failed to add invoice", error: error.message });
+    }
+};
+
+const transporter = nodemailer.createTransport({
+    service: "gmail",  // Or another service like SendGrid
+    auth: {
+        user: "purvagalani@gmail.com",  // Replace with your Gmail ID
+        pass: "tefl tsvl dxuo toch",  // Replace with your Gmail App Password
+    },
+});
+
+const sendEmailReminder = async (req, res) => {
+    const { to, subject, message } = req.body; // Extract data from the request body
+
+    // Validate input fields
+    if (!to || !subject || !message) {
+        return res.status(400).json({
+            success: false,
+            message: "All fields (to, subject, message) are required.",
+        });
+    }
+
+    try {
+        // Define the email options
+        const mailOptions = {
+            from: "purvagalani@gmail.com", // Fixed sender's email address
+            to: to, // Recipient's email address from the request
+            subject: subject, // Subject from the request
+            text: message, // Message from the request
+        };
+
+        // Send the email using Nodemailer
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("Error sending email:", error.message);
+                return res.status(500).json({
+                    success: false,
+                    message: "Error sending email: " + error.message,
+                });
+            }
+
+            console.log("Email sent successfully: " + info.response);
+            res.status(200).json({
+                success: true,
+                message: `Email sent successfully to ${to}`,
+                data: info.response, // Return the email info (optional)
+            });
+        });
+    } catch (error) {
+        console.error("Error sending email:", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error: " + error.message,
+        });
     }
 };
 
@@ -287,75 +338,75 @@ const getPaidInvoices = async (req, res) => {
     }
 };
 
-const transporter = nodemailer.createTransport({
-    service: "gmail",  // Or another service like SendGrid
-    auth: {
-        user: "purvagalani@gmail.com",  // Replace with your Gmail ID
-        pass: "tefl tsvl dxuo toch",  // Replace with your Gmail App Password
-    },
-});
+// const transporter = nodemailer.createTransport({
+//     service: "gmail",  // Or another service like SendGrid
+//     auth: {
+//         user: "purvagalani@gmail.com",  // Replace with your Gmail ID
+//         pass: "tefl tsvl dxuo toch",  // Replace with your Gmail App Password
+//     },
+// });
 
-const sendEmailReminder = async (req, res) => {
-    const { id } = req.params; // Extract the contact ID from the request parameters
-    const { message } = req.body; // Extract the message from the request body
+// const sendEmailReminder = async (req, res) => {
+//     const { id } = req.params; // Extract the contact ID from the request parameters
+//     const { message } = req.body; // Extract the message from the request body
 
-    // Validate the message field
-    if (!message) {
-        return res.status(400).json({
-            success: false,
-            message: "Message content is required",
-        });
-    }
+//     // Validate the message field
+//     if (!message) {
+//         return res.status(400).json({
+//             success: false,
+//             message: "Message content is required",
+//         });
+//     }
 
-    try {
-        // Find the invoice by ID
-        const invoice = await Invoice.findById(id);
+//     try {
+//         // Find the invoice by ID
+//         const invoice = await Invoice.findById(id);
 
-        if (!invoice) {
-            return res.status(404).json({ success: false, message: "Invoice not found" });
-        }
+//         if (!invoice) {
+//             return res.status(404).json({ success: false, message: "Invoice not found" });
+//         }
 
-        // Validate the email address
-        if (!invoice.emailAddress) {
-            return res.status(400).json({
-                success: false,
-                message: "Email address not available for this invoice",
-            });
-        }
+//         // Validate the email address
+//         if (!invoice.emailAddress) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "Email address not available for this invoice",
+//             });
+//         }
 
-        // Define the email options
-        const mailOptions = {
-            from: "your-email@gmail.com", // Your email address
-            to: invoice.emailAddress, // Recipient's email address from the database
-            subject: `Payment Reminder for Invoice #${invoice.id}`, // Subject of the email
-            text: message, // The message the user wrote
-        };
+//         // Define the email options
+//         const mailOptions = {
+//             from: "your-email@gmail.com", // Your email address
+//             to: invoice.emailAddress, // Recipient's email address from the database
+//             subject: `Payment Reminder for Invoice #${invoice.id}`, // Subject of the email
+//             text: message, // The message the user wrote
+//         };
 
-        // Send the email using Nodemailer
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error("Error sending email:", error.message);
-                return res.status(500).json({
-                    success: false,
-                    message: "Error sending email: " + error.message,
-                });
-            }
+//         // Send the email using Nodemailer
+//         transporter.sendMail(mailOptions, (error, info) => {
+//             if (error) {
+//                 console.error("Error sending email:", error.message);
+//                 return res.status(500).json({
+//                     success: false,
+//                     message: "Error sending email: " + error.message,
+//                 });
+//             }
 
-            console.log("Email sent successfully: " + info.response);
-            res.status(200).json({
-                success: true,
-                message: `Email sent successfully to ${invoice.emailAddress}`,
-                data: info.response, // Return the email info (optional)
-            });
-        });
-    } catch (error) {
-        console.error("Error sending email:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error: " + error.message,
-        });
-    }
-};
+//             console.log("Email sent successfully: " + info.response);
+//             res.status(200).json({
+//                 success: true,
+//                 message: `Email sent successfully to ${invoice.emailAddress}`,
+//                 data: info.response, // Return the email info (optional)
+//             });
+//         });
+//     } catch (error) {
+//         console.error("Error sending email:", error.message);
+//         res.status(500).json({
+//             success: false,
+//             message: "Internal server error: " + error.message,
+//         });
+//     }
+// };
 
 
 const sendWhatsAppReminder = async (req, res) => {
